@@ -734,7 +734,8 @@ const restartBtn  = document.getElementById('restart-btn');
 const restartFill = document.getElementById('restart-fill');
 let holdTimer = null;
 
-function startHold() {
+function startHold(e) {
+  if (e && e.cancelable) e.preventDefault();
   restartBtn.classList.add('holding');
   holdTimer = setTimeout(() => {
     cancelHold();
@@ -750,10 +751,11 @@ function cancelHold() {
 }
 
 restartBtn.addEventListener('mousedown',  startHold);
-restartBtn.addEventListener('touchstart', startHold, { passive: true });
+restartBtn.addEventListener('touchstart', startHold, { passive: false });
 restartBtn.addEventListener('mouseup',    cancelHold);
 restartBtn.addEventListener('mouseleave', cancelHold);
 restartBtn.addEventListener('touchend',   cancelHold);
+restartBtn.addEventListener('contextmenu', e => e.preventDefault());
 function saveState() {
   localStorage.setItem('skrzynka', JSON.stringify({
     numPlates: NUM_PLATES,
