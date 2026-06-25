@@ -304,42 +304,101 @@ function showPanel(panel, btnEl, btnActiveText) {
 
 infoBtn.addEventListener('click', () => showPanel(helpPanel, infoBtn, '×'));
 
-const MOCK_MOVES = [
-  { plate: 'P1', dir: 'right', steps: 2 },
-  { plate: 'P3', dir: 'left',  steps: 1 },
-  { plate: 'P2', dir: 'right', steps: 3 },
-  { plate: 'P5', dir: 'left',  steps: 2 },
-  { plate: 'P4', dir: 'right', steps: 1 },
-  { plate: 'P6', dir: 'left',  steps: 3 },
-  { plate: 'P1', dir: 'left',  steps: 1 },
-  { plate: 'P3', dir: 'right', steps: 2 },
-  { plate: 'P2', dir: 'left',  steps: 1 },
-  { plate: 'P4', dir: 'right', steps: 2 },
-  { plate: 'P5', dir: 'right', steps: 1 },
-  { plate: 'P6', dir: 'right', steps: 3 },
-  { plate: 'P1', dir: 'right', steps: 1 },
-  { plate: 'P2', dir: 'right', steps: 2 },
-  { plate: 'P3', dir: 'left',  steps: 3 },
-  { plate: 'P4', dir: 'left',  steps: 1 },
-  { plate: 'P5', dir: 'left',  steps: 2 },
-  { plate: 'P6', dir: 'right', steps: 1 },
-  { plate: 'P1', dir: 'left',  steps: 2 },
-  { plate: 'P3', dir: 'right', steps: 1 },
-];
+function applyMove(positions, plateIdx, delta, rels) {
+  const next = positions.slice();
+  for (let i = 0; i < next.length; i++) {
+    const rel = rels[plateIdx][i];
+    if (i === plateIdx) {
+      next[i] = Math.max(0, Math.min(NUM_CIRCLES - 1, next[i] + delta));
+    } else if (rel === 'S') {
+      next[i] = Math.max(0, Math.min(NUM_CIRCLES - 1, next[i] + delta));
+    } else if (rel === 'O') {
+      next[i] = Math.max(0, Math.min(NUM_CIRCLES - 1, next[i] - delta));
+    }
+  }
+  return next;
+}
+
+function solveGame(startPositions, rels) {
+  const goal = startPositions.map(() => MID_INDEX);
+  const goalKey = goal.join(',');
+  const startKey = startPositions.join(',');
+  if (startKey === goalKey) return [];
+
+  // BFS over position states
+  // Each node: { key, positions, moves: [{plateIdx, delta}] }
+  const visited = new Set([startKey]);
+  const queue = [{ positions: startPositions, moves: [] }];
+  const n = startPositions.length;
+
+  while (queue.length > 0) {
+    const { positions, moves } = queue.shift();
+    for (let p = 0; p < n; p++) {
+      for (const delta of [-1, 1]) {
+        const next = applyMove(positions, p, delta, rels);
+        const key = next.join(',');
+        if (key === goalKey) {
+          return [...moves, { plateIdx: p, delta }];
+        }
+        if (!visited.has(key)) {
+          visited.add(key);
+          queue.push({ positions: next, moves: [...moves, { plateIdx: p, delta }] });
+        }
+      }
+    }
+  }
+  return null; // no solution
+}
+
+function compressMoves(rawMoves) {
+  // merge consecutive same-plate same-direction moves into one
+  const out = [];
+  for (const m of rawMoves) {
+    const last = out[out.length - 1];
+    if (last && last.plateIdx === m.plateIdx && Math.sign(last.delta) === Math.sign(m.delta)) {
+      last.delta += m.delta;
+    } else {
+      out.push({ ...m });
+    }
+  }
+  return out;
+}
 
 function buildSolvePanel() {
-  // clear old rows (keep the h2)
   const h2 = solvePanel.querySelector('h2');
   solvePanel.innerHTML = '';
   solvePanel.appendChild(h2);
-  MOCK_MOVES.forEach((m, idx) => {
+
+  const startPositions = plates.map(p => p.highlighted);
+  const rawMoves = solveGame(startPositions, relations);
+
+  if (rawMoves === null) {
+    const msg = document.createElement('p');
+    msg.style.cssText = 'font-size:13px;color:#888;line-height:1.7;margin-top:8px';
+    msg.textContent = 'No solution found with the current plate links.';
+    solvePanel.appendChild(msg);
+    return;
+  }
+
+  if (rawMoves.length === 0) {
+    const msg = document.createElement('p');
+    msg.style.cssText = 'font-size:13px;color:#888;line-height:1.7;margin-top:8px';
+    msg.textContent = 'All plates are already centred!';
+    solvePanel.appendChild(msg);
+    return;
+  }
+
+  const moves = compressMoves(rawMoves);
+  moves.forEach((m, idx) => {
+    const dir = m.delta > 0 ? 'right' : 'left';
+    const steps = Math.abs(m.delta);
     const row = document.createElement('div');
     row.className = 'move-row';
     row.innerHTML =
       `<span class="move-num">${idx + 1}.</span>` +
-      `<span class="move-plate">${m.plate}</span>` +
-      `<span class="move-dir ${m.dir}">${m.dir === 'left' ? '← left' : 'right →'}</span>` +
-      `<span class="move-steps">${m.steps} step${m.steps > 1 ? 's' : ''}</span>`;
+      `<span class="move-plate">P${m.plateIdx + 1}</span>` +
+      `<span class="move-dir ${dir}">${dir === 'left' ? '← left' : 'right →'}</span>` +
+      `<span class="move-steps">${steps} step${steps > 1 ? 's' : ''}</span>`;
     solvePanel.appendChild(row);
   });
 }
