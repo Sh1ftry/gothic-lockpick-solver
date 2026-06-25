@@ -157,27 +157,27 @@
   .ctrl-btn:hover { background: #4a5568; color: #fff; border-color: #7a9abf; }
   #help-panel, #solve-panel {
     display: none;
-    width: var(--canvas-w, 600px);
+    width: min(var(--canvas-w, 600px), calc(100vw - 16px));
     height: var(--canvas-h, 500px);
     border: 1px solid #333;
     border-radius: 4px;
     background: #222;
-    padding: 28px 32px;
+    padding: 24px 24px;
     box-sizing: border-box;
     flex-direction: column;
-    gap: 14px;
+    gap: 16px;
     overflow-y: auto;
   }
   #help-panel.visible  { display: flex; }
   #solve-panel.visible { display: flex; }
   #help-panel h2, #solve-panel h2 {
-    font-size: 14px;
+    font-size: 16px;
     color: #ccc;
     letter-spacing: 0.08em;
     margin-bottom: 4px;
   }
   #help-panel p {
-    font-size: 13px;
+    font-size: 15px;
     color: #888;
     line-height: 1.7;
   }
@@ -186,25 +186,25 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 0;
+    padding: 10px 0;
     border-bottom: 1px solid #2a2a2a;
-    font-size: 13px;
+    font-size: 15px;
     color: #888;
   }
   .move-row:last-child { border-bottom: none; }
   .move-num {
-    min-width: 26px;
+    min-width: 28px;
     color: #555;
-    font-size: 11px;
+    font-size: 13px;
     text-align: right;
   }
   .move-plate {
-    min-width: 28px;
+    min-width: 32px;
     font-weight: bold;
     color: #7a9abf;
   }
   .move-dir {
-    min-width: 60px;
+    min-width: 64px;
   }
   .move-dir.left  { color: #a06ec0; }
   .move-dir.right { color: #3da668; }
@@ -239,6 +239,7 @@
   </div>
   <div id="wrapper">
   <canvas id="c"></canvas>
+  </div><!-- #wrapper -->
   <div id="help-panel">
     <h2>HOW TO USE</h2>
     <p><strong>Number of gates</strong> — use the <strong>+</strong> and <strong>−</strong> buttons to add or remove gates (min 4, max 7).</p>
@@ -256,7 +257,6 @@
   <div id="solve-panel">
     <h2>SOLUTION</h2>
   </div>
-</div><!-- #wrapper -->
 </div><!-- #outer -->
 <script>
 const canvas = document.getElementById('c');
