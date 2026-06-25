@@ -689,6 +689,9 @@ function updateCtrlBtns() {
   btnRemove.style.pointerEvents = NUM_PLATES <= MIN_PLATES ? 'none' : '';
 }
 
+btnAdd.addEventListener('touchend', e => e.preventDefault(), { passive: false });
+btnRemove.addEventListener('touchend', e => e.preventDefault(), { passive: false });
+
 btnAdd.addEventListener('click', () => {
   if (NUM_PLATES >= MAX_PLATES) return;
   NUM_PLATES++;
