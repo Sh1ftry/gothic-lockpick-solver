@@ -25,7 +25,7 @@
     border-radius: 4px;
     cursor: grab;
     display: block;
-    touch-action: none;
+    touch-action: manipulation;
   }
   canvas:active {
     cursor: grabbing;
@@ -666,6 +666,7 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
+  if (e.cancelable) e.preventDefault();
   if (drag) saveState();
   drag = null;
 }
@@ -676,7 +677,7 @@ canvas.addEventListener('mouseup',    onPointerUp);
 canvas.addEventListener('mouseleave', onPointerUp);
 canvas.addEventListener('touchstart', onPointerDown, { passive: false });
 canvas.addEventListener('touchmove',  onPointerMove, { passive: false });
-canvas.addEventListener('touchend',   onPointerUp);
+canvas.addEventListener('touchend',   onPointerUp, { passive: false });
 
 const btnAdd    = document.getElementById('btn-add');
 const btnRemove = document.getElementById('btn-remove');
