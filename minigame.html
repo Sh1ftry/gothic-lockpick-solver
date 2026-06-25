@@ -326,30 +326,30 @@ function solveGame(startPositions, rels) {
   const startKey = startPositions.join(',');
   if (startKey === goalKey) return [];
 
-  // BFS over position states
-  // Each node: { key, positions, moves: [{plateIdx, delta}] }
   const visited = new Set([startKey]);
   const queue = [{ positions: startPositions, moves: [] }];
   const n = startPositions.length;
+  const maxSteps = NUM_CIRCLES - 1;
 
   while (queue.length > 0) {
     const { positions, moves } = queue.shift();
     for (let p = 0; p < n; p++) {
-      for (const delta of [-1, 1]) {
-        const next = applyMove(positions, p, delta, rels);
-        if (next === null) continue; // illegal move
-        const key = next.join(',');
-        if (key === goalKey) {
-          return [...moves, { plateIdx: p, delta }];
-        }
-        if (!visited.has(key)) {
-          visited.add(key);
-          queue.push({ positions: next, moves: [...moves, { plateIdx: p, delta }] });
+      for (const dir of [-1, 1]) {
+        for (let s = 1; s <= maxSteps; s++) {
+          const delta = dir * s;
+          const next = applyMove(positions, p, delta, rels);
+          if (next === null) break; // larger steps in this direction also illegal
+          const key = next.join(',');
+          if (key === goalKey) return [...moves, { plateIdx: p, delta }];
+          if (!visited.has(key)) {
+            visited.add(key);
+            queue.push({ positions: next, moves: [...moves, { plateIdx: p, delta }] });
+          }
         }
       }
     }
   }
-  return null; // no solution
+  return null;
 }
 
 function compressMoves(rawMoves) {
@@ -390,7 +390,7 @@ function buildSolvePanel() {
     return;
   }
 
-  const moves = compressMoves(rawMoves);
+  const moves = rawMoves;
   moves.forEach((m, idx) => {
     const dir = m.delta > 0 ? 'left' : 'right';
     const steps = Math.abs(m.delta);
