@@ -684,9 +684,7 @@ const btnRemove = document.getElementById('btn-remove');
 
 function updateCtrlBtns() {
   btnAdd.style.opacity    = NUM_PLATES >= MAX_PLATES ? '0.3' : '';
-  btnAdd.style.pointerEvents    = NUM_PLATES >= MAX_PLATES ? 'none' : '';
   btnRemove.style.opacity = NUM_PLATES <= MIN_PLATES ? '0.3' : '';
-  btnRemove.style.pointerEvents = NUM_PLATES <= MIN_PLATES ? 'none' : '';
 }
 
 function addPlate() {
