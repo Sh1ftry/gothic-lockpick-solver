@@ -308,13 +308,14 @@ function applyMove(positions, plateIdx, delta, rels) {
   const next = positions.slice();
   for (let i = 0; i < next.length; i++) {
     const rel = rels[plateIdx][i];
-    if (i === plateIdx) {
-      next[i] = Math.max(0, Math.min(NUM_CIRCLES - 1, next[i] + delta));
-    } else if (rel === 'S') {
-      next[i] = Math.max(0, Math.min(NUM_CIRCLES - 1, next[i] + delta));
-    } else if (rel === 'O') {
-      next[i] = Math.max(0, Math.min(NUM_CIRCLES - 1, next[i] - delta));
-    }
+    let d = 0;
+    if (i === plateIdx) d = delta;
+    else if (rel === 'S') d = delta;
+    else if (rel === 'O') d = -delta;
+    if (d === 0) continue;
+    const newPos = next[i] + d;
+    if (newPos < 0 || newPos > NUM_CIRCLES - 1) return null; // illegal move
+    next[i] = newPos;
   }
   return next;
 }
@@ -336,6 +337,7 @@ function solveGame(startPositions, rels) {
     for (let p = 0; p < n; p++) {
       for (const delta of [-1, 1]) {
         const next = applyMove(positions, p, delta, rels);
+        if (next === null) continue; // illegal move
         const key = next.join(',');
         if (key === goalKey) {
           return [...moves, { plateIdx: p, delta }];
@@ -390,7 +392,7 @@ function buildSolvePanel() {
 
   const moves = compressMoves(rawMoves);
   moves.forEach((m, idx) => {
-    const dir = m.delta > 0 ? 'right' : 'left';
+    const dir = m.delta > 0 ? 'left' : 'right';
     const steps = Math.abs(m.delta);
     const row = document.createElement('div');
     row.className = 'move-row';
