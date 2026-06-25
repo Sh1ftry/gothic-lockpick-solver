@@ -224,15 +224,17 @@
   <canvas id="c"></canvas>
   <div id="help-panel">
     <h2>HOW TO USE</h2>
-    <p><strong>Select a plate</strong> — click or tap any plate to select it (highlighted in blue).</p>
-    <p><strong>Slide a plate</strong> — drag the selected plate left or right. The coloured circle stays fixed; the plate moves under it. The circle turns <strong style="color:#c0392b">red</strong> when centred, <strong style="color:#e2b34b">gold</strong> when off-centre.</p>
-    <p><strong>Program other plates</strong> — when a plate is selected, every other plate shows two tap zones on its edges:</p>
+    <p><strong>Number of plates</strong> — use the <strong>+</strong> and <strong>−</strong> buttons to add or remove plates (min 4, max 7).</p>
+    <p><strong>Set plate positions</strong> — drag any plate left or right to position it.</p>
+    <p><strong>Program links</strong> — click a plate to select it (highlighted in blue). Every other plate shows two tap zones:</p>
     <p>
-      &nbsp;&nbsp;<strong style="color:#a06ec0">O</strong> (left edge) — marks that plate to move in the <strong>opposite</strong> direction to the selected plate.<br>
-      &nbsp;&nbsp;<strong style="color:#3da668">S</strong> (right edge) — marks that plate to move in the <strong>same</strong> direction as the selected plate.
+      &nbsp;&nbsp;<strong style="color:#a06ec0">O</strong> (left edge) — that plate moves in the <strong>opposite</strong> direction when the selected plate is moved.<br>
+      &nbsp;&nbsp;<strong style="color:#3da668">S</strong> (right edge) — that plate moves in the <strong>same</strong> direction as the selected plate.
     </p>
-    <p>Tap <strong>O</strong> or <strong>S</strong> to toggle the setting. The programming is stored per selected plate — switching selection and coming back will keep your settings.</p>
-      <button id="help-close" style="display:none"></button>
+    <p>Tap <strong>O</strong> or <strong>S</strong> to toggle.</p>
+    <p><strong>Solve</strong> — once positions and links are set, press <strong>SOLVE</strong> to get the shortest sequence of moves that centres every plate.</p>
+    <p><strong>Restart</strong> — hold the restart button for <strong>2 seconds</strong> to reset all plates and links back to the default state.</p>
+    <button id="help-close" style="display:none"></button>
   </div>
   <div id="solve-panel">
     <h2>SOLUTION</h2>
@@ -400,7 +402,7 @@ function buildSolvePanel() {
       `<span class="move-num">${idx + 1}.</span>` +
       `<span class="move-plate">P${m.plateIdx + 1}</span>` +
       `<span class="move-dir ${dir}">${dir === 'left' ? '← left' : 'right →'}</span>` +
-      `<span class="move-steps">${steps} step${steps > 1 ? 's' : ''}</span>`;
+      `<span class="move-steps">${steps} time${steps > 1 ? 's' : ''}</span>`;
     solvePanel.appendChild(row);
   });
 }
@@ -616,6 +618,7 @@ function onPointerDown(e) {
     const cur = relations[selected][btn.plateIndex];
     relations[selected][btn.plateIndex] = cur === btn.side ? null : btn.side;
     draw();
+    saveState();
     return;
   }
 
@@ -624,6 +627,7 @@ function onPointerDown(e) {
   selected = i;
   drag = { plateIndex: i, startX: x, startHighlighted: plates[i].highlighted };
   draw();
+  saveState();
 }
 
 function onPointerMove(e) {
@@ -641,6 +645,7 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
+  if (drag) saveState();
   drag = null;
 }
 
@@ -666,12 +671,12 @@ btnAdd.addEventListener('click', () => {
   if (NUM_PLATES >= MAX_PLATES) return;
   NUM_PLATES++;
   plates.push({ highlighted: Math.floor(NUM_CIRCLES / 2) });
-  // expand relations matrix
   for (let i = 0; i < relations.length; i++) relations[i].push(null);
   relations.push(Array.from({ length: NUM_PLATES }, () => null));
   resizeCanvas();
   updateCtrlBtns();
   draw();
+  saveState();
 });
 
 btnRemove.addEventListener('click', () => {
@@ -684,6 +689,7 @@ btnRemove.addEventListener('click', () => {
   resizeCanvas();
   updateCtrlBtns();
   draw();
+  saveState();
 });
 
 function resetGame() {
@@ -693,6 +699,7 @@ function resetGame() {
   relations.length = 0;
   for (let i = 0; i < NUM_PLATES; i++) relations.push(Array.from({ length: NUM_PLATES }, () => null));
   selected = 0;
+  localStorage.removeItem('skrzynka');
   resizeCanvas();
   updateCtrlBtns();
   draw();
@@ -722,8 +729,33 @@ restartBtn.addEventListener('touchstart', startHold, { passive: true });
 restartBtn.addEventListener('mouseup',    cancelHold);
 restartBtn.addEventListener('mouseleave', cancelHold);
 restartBtn.addEventListener('touchend',   cancelHold);
-restartBtn.addEventListener('touchcancel',cancelHold);
+function saveState() {
+  localStorage.setItem('skrzynka', JSON.stringify({
+    numPlates: NUM_PLATES,
+    selected,
+    plates: plates.map(p => p.highlighted),
+    relations,
+  }));
+}
 
+function loadState() {
+  try {
+    const raw = localStorage.getItem('skrzynka');
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (!s.plates || s.numPlates < MIN_PLATES || s.numPlates > MAX_PLATES) return false;
+    NUM_PLATES = s.numPlates;
+    plates.length = 0;
+    for (let i = 0; i < NUM_PLATES; i++) plates.push({ highlighted: s.plates[i] ?? MID_INDEX });
+    relations.length = 0;
+    for (let i = 0; i < NUM_PLATES; i++) relations.push(s.relations[i] ?? Array(NUM_PLATES).fill(null));
+    selected = Math.min(s.selected ?? 0, NUM_PLATES - 1);
+    return true;
+  } catch { return false; }
+}
+
+const stateLoaded = loadState();
+if (stateLoaded) resizeCanvas();
 updateCtrlBtns();
 
 draw();
