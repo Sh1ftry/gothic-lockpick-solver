@@ -689,10 +689,7 @@ function updateCtrlBtns() {
   btnRemove.style.pointerEvents = NUM_PLATES <= MIN_PLATES ? 'none' : '';
 }
 
-btnAdd.addEventListener('touchend', e => e.preventDefault(), { passive: false });
-btnRemove.addEventListener('touchend', e => e.preventDefault(), { passive: false });
-
-btnAdd.addEventListener('click', () => {
+function addPlate() {
   if (NUM_PLATES >= MAX_PLATES) return;
   NUM_PLATES++;
   plates.push({ highlighted: Math.floor(NUM_CIRCLES / 2) });
@@ -702,9 +699,9 @@ btnAdd.addEventListener('click', () => {
   updateCtrlBtns();
   draw();
   saveState();
-});
+}
 
-btnRemove.addEventListener('click', () => {
+function removePlate() {
   if (NUM_PLATES <= MIN_PLATES) return;
   NUM_PLATES--;
   plates.pop();
@@ -715,7 +712,12 @@ btnRemove.addEventListener('click', () => {
   updateCtrlBtns();
   draw();
   saveState();
-});
+}
+
+btnAdd.addEventListener('click', addPlate);
+btnAdd.addEventListener('touchend', e => { e.preventDefault(); addPlate(); }, { passive: false });
+btnRemove.addEventListener('click', removePlate);
+btnRemove.addEventListener('touchend', e => { e.preventDefault(); removePlate(); }, { passive: false });
 
 function resetGame() {
   NUM_PLATES = DEFAULT_PLATES;
