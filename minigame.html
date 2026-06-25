@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Plate Minigame</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 40px;
+    min-height: 100vh;
+    font-family: monospace;
+    color: #ccc;
+    user-select: none;
+  }
+  canvas {
+    border: 1px solid #333;
+    border-radius: 4px;
+    cursor: grab;
+    display: block;
+  }
+  canvas:active {
+    cursor: grabbing;
+  }
+  #wrapper {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    width: var(--canvas-w, 600px);
+    box-sizing: border-box;
+  }
+  #toolbar-left  { display: flex; gap: 6px; flex-shrink: 0; }
+  #toolbar-right { display: flex; gap: 6px; flex-shrink: 0; }
+  #solve-btn {
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 5px;
+    background: #3a3a3a;
+    border: 1px solid #5a5a5a;
+    color: #aaa;
+    font: bold 13px monospace;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    letter-spacing: 0.05em;
+    transition: background 0.15s, color 0.15s;
+  }
+  #solve-btn:hover { background: #4a5568; color: #fff; border-color: #7a9abf; }
+  #solve-btn.active { background: #2d4a2d; border-color: #4a8a4a; color: #8fbc8f; }
+  #solve-btn.closing {
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+    background: #3a3a3a;
+    border-color: #5a5a5a;
+    color: #aaa;
+    font: bold 20px monospace;
+    letter-spacing: 0;
+  }
+  #solve-btn.closing:hover { background: #4a5568; color: #fff; border-color: #7a9abf; }
+  #restart-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    border-radius: 5px;
+    background: #3a3a3a;
+    border: 1px solid #5a5a5a;
+    color: #aaa;
+    font: bold 13px monospace;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  #restart-btn:hover { border-color: #7a6a4a; color: #e2b34b; }
+  #restart-btn svg { pointer-events: none; }
+  #restart-fill {
+    position: absolute;
+    inset: 0;
+    background: rgba(180,80,40,0.25);
+    transform-origin: bottom;
+    transform: scaleY(0);
+    transition: none;
+  }
+  #restart-btn.holding #restart-fill {
+    transform: scaleY(1);
+    transition: transform 2s linear;
+  }
+  #restart-btn.holding { border-color: #c0603a; color: #e08060; }
+  #info-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    border-radius: 5px;
+    background: #3a3a3a;
+    border: 1px solid #5a5a5a;
+    color: #aaa;
+    font: bold 20px monospace;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  #info-btn:hover { background: #4a5568; color: #fff; border-color: #7a9abf; }
+  .ctrl-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    border-radius: 5px;
+    background: #3a3a3a;
+    border: 1px solid #5a5a5a;
+    color: #aaa;
+    font: bold 22px monospace;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .ctrl-btn:hover { background: #4a5568; color: #fff; border-color: #7a9abf; }
+  #help-panel, #solve-panel {
+    display: none;
+    width: var(--canvas-w, 600px);
+    height: var(--canvas-h, 500px);
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #222;
+    padding: 28px 32px;
+    box-sizing: border-box;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+  }
+  #help-panel.visible  { display: flex; }
+  #solve-panel.visible { display: flex; }
+  #help-panel h2, #solve-panel h2 {
+    font-size: 14px;
+    color: #ccc;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  #help-panel p {
+    font-size: 13px;
+    color: #888;
+    line-height: 1.7;
+  }
+  #help-panel strong { color: #ccc; }
+  .move-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #2a2a2a;
+    font-size: 13px;
+    color: #888;
+  }
+  .move-row:last-child { border-bottom: none; }
+  .move-num {
+    min-width: 26px;
+    color: #555;
+    font-size: 11px;
+    text-align: right;
+  }
+  .move-plate {
+    min-width: 28px;
+    font-weight: bold;
+    color: #7a9abf;
+  }
+  .move-dir {
+    min-width: 60px;
+  }
+  .move-dir.left  { color: #a06ec0; }
+  .move-dir.right { color: #3da668; }
+  .move-steps { color: #666; }
+  #info {
+    margin-top: 16px;
+    font-size: 13px;
+    color: #888;
+    text-align: center;
+    line-height: 1.8;
+    max-width: var(--canvas-w, 600px);
+  }
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <div id="toolbar">
+    <div id="toolbar-left">
+      <div id="solve-btn" title="Solve">SOLVE</div>
+    </div>
+    <div id="toolbar-right">
+      <div id="restart-btn" title="Hold 3s to restart">
+        <div id="restart-fill"></div>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 3V1L6 4l3 3V5a4 4 0 1 1-4 4H3a6 6 0 1 0 6-6z" fill="currentColor"/>
+        </svg>
+      </div>
+      <div id="btn-remove" class="ctrl-btn" title="Remove plate">−</div>
+      <div id="btn-add"    class="ctrl-btn" title="Add plate">+</div>
+      <div id="info-btn" title="How to use">i</div>
+    </div>
+  </div>
+  <canvas id="c"></canvas>
+  <div id="help-panel">
+    <h2>HOW TO USE</h2>
+    <p><strong>Select a plate</strong> — click or tap any plate to select it (highlighted in blue).</p>
+    <p><strong>Slide a plate</strong> — drag the selected plate left or right. The coloured circle stays fixed; the plate moves under it. The circle turns <strong style="color:#c0392b">red</strong> when centred, <strong style="color:#e2b34b">gold</strong> when off-centre.</p>
+    <p><strong>Program other plates</strong> — when a plate is selected, every other plate shows two tap zones on its edges:</p>
+    <p>
+      &nbsp;&nbsp;<strong style="color:#a06ec0">O</strong> (left edge) — marks that plate to move in the <strong>opposite</strong> direction to the selected plate.<br>
+      &nbsp;&nbsp;<strong style="color:#3da668">S</strong> (right edge) — marks that plate to move in the <strong>same</strong> direction as the selected plate.
+    </p>
+    <p>Tap <strong>O</strong> or <strong>S</strong> to toggle the setting. The programming is stored per selected plate — switching selection and coming back will keep your settings.</p>
+      <button id="help-close" style="display:none"></button>
+  </div>
+  <div id="solve-panel">
+    <h2>SOLUTION</h2>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+const MIN_PLATES  = 4;
+const MAX_PLATES  = 7;
+const DEFAULT_PLATES = 6;
+let   NUM_PLATES  = DEFAULT_PLATES;
+const NUM_CIRCLES = 7;
+const PLATE_H     = 64;
+const GAP         = 10;
+const PAD_X       = 20;
+const CIRCLE_R    = 14;
+const SPACING     = CIRCLE_R * 2 + 10; // center-to-center distance between circles
+const PLATE_W     = PAD_X * 2 + CIRCLE_R * 2 + SPACING * (NUM_CIRCLES - 1);
+
+// The visible viewport for the plates — fixed width, plates slide behind it
+const VIEWPORT_W  = PLATE_W;          // show exactly one plate-width at a time
+const HALF        = Math.floor((NUM_CIRCLES - 1) / 2); // circles from center to edge
+const VIEWPORT_X  = 20 + HALF * SPACING;               // left margin includes max left-slide overhang
+const CANVAS_W    = VIEWPORT_X + VIEWPORT_W + HALF * SPACING + 20;
+const CENTER_X    = VIEWPORT_X + VIEWPORT_W / 2;
+function canvasHeight() { return NUM_PLATES * (PLATE_H + GAP) + GAP + 40; }
+
+canvas.width  = CANVAS_W;
+canvas.height = canvasHeight();
+document.body.style.setProperty('--canvas-w', (CANVAS_W + 2) + 'px');
+document.body.style.setProperty('--canvas-h', (canvas.height + 2) + 'px');
+
+function resizeCanvas() {
+  canvas.height = canvasHeight();
+  document.body.style.setProperty('--canvas-h', (canvas.height + 2) + 'px');
+}
+
+const infoBtn    = document.getElementById('info-btn');
+const helpPanel  = document.getElementById('help-panel');
+const solveBtn   = document.getElementById('solve-btn');
+const solvePanel = document.getElementById('solve-panel');
+
+function showPanel(panel, btnEl, btnActiveText) {
+  const alreadyShowing = panel.classList.contains('visible');
+  // hide everything first
+  helpPanel.classList.remove('visible');
+  solvePanel.classList.remove('visible');
+  canvas.style.display = 'block';
+  infoBtn.textContent = 'i';
+  solveBtn.textContent = 'SOLVE';
+  solveBtn.classList.remove('active', 'closing');
+  btnAdd.style.visibility     = '';
+  btnRemove.style.visibility  = '';
+  restartBtn.style.visibility = '';
+  solveBtn.style.visibility   = '';
+  if (!alreadyShowing) {
+    panel.classList.add('visible');
+    canvas.style.display = 'none';
+    btnEl.textContent = '×';
+    if (btnEl === solveBtn) solveBtn.classList.add('closing');
+    btnAdd.style.visibility     = 'hidden';
+    btnRemove.style.visibility  = 'hidden';
+    restartBtn.style.visibility = 'hidden';
+    if (btnEl !== solveBtn) solveBtn.style.visibility = 'hidden';
+  }
+}
+
+infoBtn.addEventListener('click', () => showPanel(helpPanel, infoBtn, '×'));
+
+const MOCK_MOVES = [
+  { plate: 'P1', dir: 'right', steps: 2 },
+  { plate: 'P3', dir: 'left',  steps: 1 },
+  { plate: 'P2', dir: 'right', steps: 3 },
+  { plate: 'P5', dir: 'left',  steps: 2 },
+  { plate: 'P4', dir: 'right', steps: 1 },
+  { plate: 'P6', dir: 'left',  steps: 3 },
+  { plate: 'P1', dir: 'left',  steps: 1 },
+  { plate: 'P3', dir: 'right', steps: 2 },
+  { plate: 'P2', dir: 'left',  steps: 1 },
+  { plate: 'P4', dir: 'right', steps: 2 },
+  { plate: 'P5', dir: 'right', steps: 1 },
+  { plate: 'P6', dir: 'right', steps: 3 },
+  { plate: 'P1', dir: 'right', steps: 1 },
+  { plate: 'P2', dir: 'right', steps: 2 },
+  { plate: 'P3', dir: 'left',  steps: 3 },
+  { plate: 'P4', dir: 'left',  steps: 1 },
+  { plate: 'P5', dir: 'left',  steps: 2 },
+  { plate: 'P6', dir: 'right', steps: 1 },
+  { plate: 'P1', dir: 'left',  steps: 2 },
+  { plate: 'P3', dir: 'right', steps: 1 },
+];
+
+function buildSolvePanel() {
+  // clear old rows (keep the h2)
+  const h2 = solvePanel.querySelector('h2');
+  solvePanel.innerHTML = '';
+  solvePanel.appendChild(h2);
+  MOCK_MOVES.forEach((m, idx) => {
+    const row = document.createElement('div');
+    row.className = 'move-row';
+    row.innerHTML =
+      `<span class="move-num">${idx + 1}.</span>` +
+      `<span class="move-plate">${m.plate}</span>` +
+      `<span class="move-dir ${m.dir}">${m.dir === 'left' ? '← left' : 'right →'}</span>` +
+      `<span class="move-steps">${m.steps} step${m.steps > 1 ? 's' : ''}</span>`;
+    solvePanel.appendChild(row);
+  });
+}
+
+solveBtn.addEventListener('click', () => {
+  buildSolvePanel();
+  showPanel(solvePanel, solveBtn, '×');
+});
+
+// each plate tracks which circle index is currently "centered"
+const plates = Array.from({ length: NUM_PLATES }, () => ({
+  highlighted: Math.floor(NUM_CIRCLES / 2),
+}));
+let selected = 0;
+
+// relations[sel][other] = 'O' | 'S' | null
+// stored per selected plate so switching selection preserves each plate's programming
+const relations = Array.from({ length: NUM_PLATES }, () =>
+  Array.from({ length: NUM_PLATES }, () => null)
+);
+
+// left edge of the plate given which circle index is centered
+function plateLeft(highlighted) {
+  // circle[highlighted] must sit at CENTER_X
+  // circle[j] is at plateLeft + PAD_X + CIRCLE_R + j * SPACING
+  // so: CENTER_X = plateLeft + PAD_X + CIRCLE_R + highlighted * SPACING
+  return CENTER_X - PAD_X - CIRCLE_R - highlighted * SPACING;
+}
+
+function plateY(i) {
+  return GAP + i * (PLATE_H + GAP) + 20;
+}
+
+// colours
+const COL_BG         = '#1a1a1a';
+const COL_PLATE      = '#3a3a3a';
+const COL_PLATE_SEL  = '#4a5568';
+const COL_PLATE_EDGE = '#5a5a5a';
+const COL_CIRCLE     = '#222';
+const COL_CIRCLE_RIM = '#666';
+const COL_HIGHLIGHT       = '#e2b34b';  // golden — special circle off-center
+const COL_HIGHLIGHT_MID   = '#c0392b';  // red — special circle at plate center
+const MID_INDEX           = Math.floor(NUM_CIRCLES / 2);
+const COL_TEXT_SEL   = '#fff';
+const COL_TEXT       = '#666';
+
+// O/S overlay buttons — narrow strips on the left/right edges of the plate
+const BTN_STRIP_W = 68;
+
+function btnRect(plateIndex, side) {
+  const py = plateY(plateIndex);
+  const px = plateLeft(plates[plateIndex].highlighted);
+  if (side === 'O') return { x: px,                          y: py, w: BTN_STRIP_W, h: PLATE_H };
+  else              return { x: px + PLATE_W - BTN_STRIP_W,  y: py, w: BTN_STRIP_W, h: PLATE_H };
+}
+
+function drawBtn(plateIndex, side) {
+  const r = btnRect(plateIndex, side);
+  const rel = relations[selected][plateIndex];
+  const active = rel === side;
+
+  ctx.save();
+  // clip to plate rounded rect so overlay respects corners
+  ctx.beginPath();
+  roundRect(ctx, plateLeft(plates[plateIndex].highlighted), plateY(plateIndex), PLATE_W, PLATE_H, 10);
+  ctx.clip();
+
+  ctx.fillStyle = active
+    ? (side === 'O' ? 'rgba(123,79,158,0.55)' : 'rgba(46,125,82,0.55)')
+    : 'rgba(0,0,0,0.35)';
+  ctx.fillRect(r.x, r.y, r.w, r.h);
+
+  // letter
+  ctx.fillStyle = active ? '#fff' : 'rgba(255,255,255,0.45)';
+  ctx.font = `bold ${active ? 22 : 18}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(side, r.x + r.w / 2, r.y + r.h / 2);
+  ctx.textBaseline = 'alphabetic';
+
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, CANVAS_W, canvas.height);
+
+  for (let i = 0; i < NUM_PLATES; i++) {
+    const plate = plates[i];
+    const py = plateY(i);
+    const isSel = i === selected;
+    const px = plateLeft(plate.highlighted);
+
+    ctx.save();
+
+    // plate body
+    ctx.beginPath();
+    roundRect(ctx, px, py, PLATE_W, PLATE_H, 10);
+    ctx.fillStyle = isSel ? COL_PLATE_SEL : COL_PLATE;
+    ctx.fill();
+    ctx.strokeStyle = isSel ? '#7a9abf' : COL_PLATE_EDGE;
+    ctx.lineWidth = isSel ? 2 : 1;
+    ctx.stroke();
+
+    // plate label
+    ctx.fillStyle = isSel ? COL_TEXT_SEL : COL_TEXT;
+    ctx.font = `bold ${isSel ? 11 : 10}px monospace`;
+    ctx.textAlign = 'left';
+    ctx.fillText(`P${i + 1}`, px + 6, py + PLATE_H - 6);
+
+    // circles
+    for (let j = 0; j < NUM_CIRCLES; j++) {
+      const cx = px + PAD_X + CIRCLE_R + j * SPACING;
+      const cy = py + PLATE_H / 2;
+      const isHighlighted = j === plate.highlighted;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, CIRCLE_R + 2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, CIRCLE_R, 0, Math.PI * 2);
+      const hlColor = isHighlighted
+        ? (plate.highlighted === MID_INDEX ? COL_HIGHLIGHT_MID : COL_HIGHLIGHT)
+        : COL_CIRCLE;
+      ctx.fillStyle = hlColor;
+      ctx.fill();
+      ctx.strokeStyle = isHighlighted
+        ? (plate.highlighted === MID_INDEX ? '#e74c3c' : '#f0c96a')
+        : COL_CIRCLE_RIM;
+      ctx.lineWidth = isHighlighted ? 2 : 1;
+      ctx.stroke();
+
+      if (isHighlighted) {
+        ctx.beginPath();
+        ctx.arc(cx - 4, cy - 4, CIRCLE_R * 0.4, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
+
+    // O/S buttons for non-selected plates when a plate is selected
+    if (!isSel) {
+      drawBtn(i, 'O');
+      drawBtn(i, 'S');
+    }
+  }
+
+  // fixed center marker — vertical line showing where the active hole always is
+  ctx.strokeStyle = 'rgba(122,154,191,0.25)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(CENTER_X, 8);
+  ctx.lineTo(CENTER_X, canvas.height - 8);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+}
+
+// --- interaction ---
+// drag state
+let drag = null; // { plateIndex, startX, startHighlighted }
+
+function plateIndexAt(canvasX, canvasY) {
+  for (let i = 0; i < NUM_PLATES; i++) {
+    const py = plateY(i);
+    const px = plateLeft(plates[i].highlighted);
+    if (canvasX >= px && canvasX <= px + PLATE_W &&
+        canvasY >= py && canvasY <= py + PLATE_H) return i;
+  }
+  return -1;
+}
+
+function canvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - r.left, y: src.clientY - r.top };
+}
+
+function btnAt(canvasX, canvasY) {
+  for (let i = 0; i < NUM_PLATES; i++) {
+    if (i === selected) continue;
+    for (const side of ['O', 'S']) {
+      const r = btnRect(i, side);
+      if (canvasX >= r.x && canvasX <= r.x + r.w &&
+          canvasY >= r.y && canvasY <= r.y + r.h) return { plateIndex: i, side };
+    }
+  }
+  return null;
+}
+
+function onPointerDown(e) {
+  e.preventDefault();
+  const { x, y } = canvasPos(e);
+
+  // check O/S buttons first
+  const btn = btnAt(x, y);
+  if (btn) {
+    const cur = relations[selected][btn.plateIndex];
+    relations[selected][btn.plateIndex] = cur === btn.side ? null : btn.side;
+    draw();
+    return;
+  }
+
+  const i = plateIndexAt(x, y);
+  if (i === -1) return;
+  selected = i;
+  drag = { plateIndex: i, startX: x, startHighlighted: plates[i].highlighted };
+  draw();
+}
+
+function onPointerMove(e) {
+  if (!drag) return;
+  e.preventDefault();
+  const { x } = canvasPos(e);
+  const dx = x - drag.startX;
+  // each SPACING px of drag = one circle step
+  const steps = Math.round(dx / SPACING);
+  const newH = Math.max(0, Math.min(NUM_CIRCLES - 1, drag.startHighlighted - steps));
+  if (newH !== plates[drag.plateIndex].highlighted) {
+    plates[drag.plateIndex].highlighted = newH;
+    draw();
+  }
+}
+
+function onPointerUp(e) {
+  drag = null;
+}
+
+canvas.addEventListener('mousedown',  onPointerDown);
+canvas.addEventListener('mousemove',  onPointerMove);
+canvas.addEventListener('mouseup',    onPointerUp);
+canvas.addEventListener('mouseleave', onPointerUp);
+canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+canvas.addEventListener('touchmove',  onPointerMove, { passive: false });
+canvas.addEventListener('touchend',   onPointerUp);
+
+const btnAdd    = document.getElementById('btn-add');
+const btnRemove = document.getElementById('btn-remove');
+
+function updateCtrlBtns() {
+  btnAdd.style.opacity    = NUM_PLATES >= MAX_PLATES ? '0.3' : '';
+  btnAdd.style.pointerEvents    = NUM_PLATES >= MAX_PLATES ? 'none' : '';
+  btnRemove.style.opacity = NUM_PLATES <= MIN_PLATES ? '0.3' : '';
+  btnRemove.style.pointerEvents = NUM_PLATES <= MIN_PLATES ? 'none' : '';
+}
+
+btnAdd.addEventListener('click', () => {
+  if (NUM_PLATES >= MAX_PLATES) return;
+  NUM_PLATES++;
+  plates.push({ highlighted: Math.floor(NUM_CIRCLES / 2) });
+  // expand relations matrix
+  for (let i = 0; i < relations.length; i++) relations[i].push(null);
+  relations.push(Array.from({ length: NUM_PLATES }, () => null));
+  resizeCanvas();
+  updateCtrlBtns();
+  draw();
+});
+
+btnRemove.addEventListener('click', () => {
+  if (NUM_PLATES <= MIN_PLATES) return;
+  NUM_PLATES--;
+  plates.pop();
+  for (let i = 0; i < relations.length - 1; i++) relations[i].pop();
+  relations.pop();
+  if (selected >= NUM_PLATES) selected = NUM_PLATES - 1;
+  resizeCanvas();
+  updateCtrlBtns();
+  draw();
+});
+
+function resetGame() {
+  NUM_PLATES = DEFAULT_PLATES;
+  plates.length = 0;
+  for (let i = 0; i < NUM_PLATES; i++) plates.push({ highlighted: Math.floor(NUM_CIRCLES / 2) });
+  relations.length = 0;
+  for (let i = 0; i < NUM_PLATES; i++) relations.push(Array.from({ length: NUM_PLATES }, () => null));
+  selected = 0;
+  resizeCanvas();
+  updateCtrlBtns();
+  draw();
+}
+
+const restartBtn  = document.getElementById('restart-btn');
+const restartFill = document.getElementById('restart-fill');
+let holdTimer = null;
+
+function startHold() {
+  restartBtn.classList.add('holding');
+  holdTimer = setTimeout(() => {
+    cancelHold();
+    resetGame();
+  }, 2000);
+}
+
+function cancelHold() {
+  restartBtn.classList.remove('holding');
+  void restartFill.offsetWidth;
+  clearTimeout(holdTimer);
+  holdTimer = null;
+}
+
+restartBtn.addEventListener('mousedown',  startHold);
+restartBtn.addEventListener('touchstart', startHold, { passive: true });
+restartBtn.addEventListener('mouseup',    cancelHold);
+restartBtn.addEventListener('mouseleave', cancelHold);
+restartBtn.addEventListener('touchend',   cancelHold);
+restartBtn.addEventListener('touchcancel',cancelHold);
+
+updateCtrlBtns();
+
+draw();
+</script>
+</body>
+</html>
