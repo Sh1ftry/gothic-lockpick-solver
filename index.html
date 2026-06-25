@@ -303,7 +303,7 @@ function showPanel(panel, btnEl, btnActiveText) {
   // hide everything first
   helpPanel.classList.remove('visible');
   solvePanel.classList.remove('visible');
-  canvas.style.display = 'block';
+  wrapper.style.display = '';
   infoBtn.textContent = 'i';
   solveBtn.textContent = 'SOLVE';
   solveBtn.classList.remove('active', 'closing');
@@ -313,7 +313,7 @@ function showPanel(panel, btnEl, btnActiveText) {
   solveBtn.style.visibility   = '';
   if (!alreadyShowing) {
     panel.classList.add('visible');
-    canvas.style.display = 'none';
+    wrapper.style.display = 'none';
     btnEl.textContent = '×';
     if (btnEl === solveBtn) solveBtn.classList.add('closing');
     btnAdd.style.visibility     = 'hidden';
