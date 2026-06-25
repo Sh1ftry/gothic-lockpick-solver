@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Plate Minigame</title>
+<title>Gothic Lockpick Solver</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%233a3a3a'/%3E%3Crect x='1' y='1' width='30' height='30' rx='3' fill='none' stroke='%235a5a5a' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='13' r='5' fill='none' stroke='%23e2b34b' stroke-width='2'/%3E%3Ccircle cx='16' cy='13' r='2' fill='%23e2b34b'/%3E%3Cpath d='M14 18 L14 26 L16 24 L18 26 L18 18' fill='%23e2b34b'/%3E%3C/svg%3E">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -216,24 +217,24 @@
           <path d="M9 3V1L6 4l3 3V5a4 4 0 1 1-4 4H3a6 6 0 1 0 6-6z" fill="currentColor"/>
         </svg>
       </div>
-      <div id="btn-remove" class="ctrl-btn" title="Remove plate">−</div>
-      <div id="btn-add"    class="ctrl-btn" title="Add plate">+</div>
+      <div id="btn-remove" class="ctrl-btn" title="Remove gate">−</div>
+      <div id="btn-add"    class="ctrl-btn" title="Add gate">+</div>
       <div id="info-btn" title="How to use">i</div>
     </div>
   </div>
   <canvas id="c"></canvas>
   <div id="help-panel">
     <h2>HOW TO USE</h2>
-    <p><strong>Number of plates</strong> — use the <strong>+</strong> and <strong>−</strong> buttons to add or remove plates (min 4, max 7).</p>
-    <p><strong>Set plate positions</strong> — drag any plate left or right to position it.</p>
-    <p><strong>Program links</strong> — click a plate to select it (highlighted in blue). Every other plate shows two tap zones:</p>
+    <p><strong>Number of gates</strong> — use the <strong>+</strong> and <strong>−</strong> buttons to add or remove gates (min 4, max 7).</p>
+    <p><strong>Set gate positions</strong> — drag any gate left or right to position it.</p>
+    <p><strong>Program links</strong> — click a gate to select it (highlighted in blue). Every other gate shows two tap zones:</p>
     <p>
-      &nbsp;&nbsp;<strong style="color:#a06ec0">O</strong> (left edge) — that plate moves in the <strong>opposite</strong> direction when the selected plate is moved.<br>
-      &nbsp;&nbsp;<strong style="color:#3da668">S</strong> (right edge) — that plate moves in the <strong>same</strong> direction as the selected plate.
+      &nbsp;&nbsp;<strong style="color:#a06ec0">O</strong> (left edge) — that gate moves in the <strong>opposite</strong> direction when the selected gate is moved.<br>
+      &nbsp;&nbsp;<strong style="color:#3da668">S</strong> (right edge) — that gate moves in the <strong>same</strong> direction as the selected gate.
     </p>
     <p>Tap <strong>O</strong> or <strong>S</strong> to toggle.</p>
-    <p><strong>Solve</strong> — once positions and links are set, press <strong>SOLVE</strong> to get the shortest sequence of moves that centres every plate.</p>
-    <p><strong>Restart</strong> — hold the restart button for <strong>2 seconds</strong> to reset all plates and links back to the default state.</p>
+    <p><strong>Solve</strong> — once positions and links are set, press <strong>SOLVE</strong> to get the shortest sequence of moves that centres every gate.</p>
+    <p><strong>Restart</strong> — hold the restart button for <strong>2 seconds</strong> to reset all gates and links back to the default state.</p>
     <button id="help-close" style="display:none"></button>
   </div>
   <div id="solve-panel">
@@ -379,7 +380,7 @@ function buildSolvePanel() {
   if (rawMoves === null) {
     const msg = document.createElement('p');
     msg.style.cssText = 'font-size:13px;color:#888;line-height:1.7;margin-top:8px';
-    msg.textContent = 'No solution found with the current plate links.';
+    msg.textContent = 'No solution found with the current gate links.';
     solvePanel.appendChild(msg);
     return;
   }
@@ -387,7 +388,7 @@ function buildSolvePanel() {
   if (rawMoves.length === 0) {
     const msg = document.createElement('p');
     msg.style.cssText = 'font-size:13px;color:#888;line-height:1.7;margin-top:8px';
-    msg.textContent = 'All plates are already centred!';
+    msg.textContent = 'All gates are already centred!';
     solvePanel.appendChild(msg);
     return;
   }
@@ -400,7 +401,7 @@ function buildSolvePanel() {
     row.className = 'move-row';
     row.innerHTML =
       `<span class="move-num">${idx + 1}.</span>` +
-      `<span class="move-plate">P${m.plateIdx + 1}</span>` +
+      `<span class="move-plate">G${m.plateIdx + 1}</span>` +
       `<span class="move-dir ${dir}">${dir === 'left' ? '← left' : 'right →'}</span>` +
       `<span class="move-steps">${steps} time${steps > 1 ? 's' : ''}</span>`;
     solvePanel.appendChild(row);
@@ -510,7 +511,7 @@ function draw() {
     ctx.fillStyle = isSel ? COL_TEXT_SEL : COL_TEXT;
     ctx.font = `bold ${isSel ? 11 : 10}px monospace`;
     ctx.textAlign = 'left';
-    ctx.fillText(`P${i + 1}`, px + 6, py + PLATE_H - 6);
+    ctx.fillText(`G${i + 1}`, px + 6, py + PLATE_H - 6);
 
     // circles
     for (let j = 0; j < NUM_CIRCLES; j++) {
