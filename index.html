@@ -388,13 +388,18 @@ function compressMoves(rawMoves) {
   return out;
 }
 
+const solveCache = new Map();
+
 function buildSolvePanel() {
   const h2 = solvePanel.querySelector('h2');
   solvePanel.innerHTML = '';
   solvePanel.appendChild(h2);
 
   const startPositions = plates.map(p => p.highlighted);
-  const rawMoves = solveGame(startPositions, relations);
+  const cacheKey = JSON.stringify({ p: startPositions, r: relations });
+  const rawMoves = solveCache.has(cacheKey)
+    ? solveCache.get(cacheKey)
+    : (() => { const m = solveGame(startPositions, relations); solveCache.set(cacheKey, m); return m; })();
 
   if (rawMoves === null) {
     const msg = document.createElement('p');
@@ -725,6 +730,7 @@ function resetGame() {
   for (let i = 0; i < NUM_PLATES; i++) relations.push(Array.from({ length: NUM_PLATES }, () => null));
   selected = 0;
   localStorage.removeItem('skrzynka');
+  solveCache.clear();
   resizeCanvas();
   updateCtrlBtns();
   draw();
