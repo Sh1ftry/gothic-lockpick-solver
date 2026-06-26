@@ -312,6 +312,7 @@ function showPanel(panel, btnEl, btnActiveText) {
   restartBtn.style.visibility = '';
   solveBtn.style.visibility   = '';
   if (!alreadyShowing) {
+    if (panel === solvePanel) buildSolvePanel();
     panel.classList.add('visible');
     wrapper.style.display = 'none';
     btnEl.textContent = '×';
@@ -427,7 +428,6 @@ function buildSolvePanel() {
 }
 
 solveBtn.addEventListener('click', () => {
-  buildSolvePanel();
   showPanel(solvePanel, solveBtn, '×');
 });
 
